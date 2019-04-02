@@ -18,7 +18,7 @@
 //#define SQL_TIME_POINT_STORAGE std::chrono::milliseconds
 
 #if !defined(SQL_TIME_POINT_STORAGE) || !defined(SQL_DURATION_STORAGE)
-#include <date/serialize.h>
+#include "date.hpp"
 #endif
 
 namespace sql {
