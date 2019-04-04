@@ -1,18 +1,24 @@
-# Hidden
+# root
+/*
+
+# dotfiles
 .*
-!.clang-format
-!.gitattributes
-!.gitignore
 
-# Build
-/build/
-/tzdata/
+# include
+!/include/
 
-# Install
-/bin/
-/lib/
+# res
+!/res/
 
-# Debug
-/*.core
-/*.log
-/core
+# src
+!/src/
+
+# files
+!/.clang-format
+!/.gitattributes
+!/.gitignore
+!/CMakeLists.txt
+!/CONTROL
+!/license.txt
+!/portfile.cmake
+!/readme.md
