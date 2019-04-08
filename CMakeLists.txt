@@ -29,10 +29,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   SQLITE_OMIT_WAL
   SQLITE_ENABLE_COLUMN_METADATA)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  target_link_libraries(${PROJECT_NAME} PUBLIC c++fs)
-endif()
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_libraries(${PROJECT_NAME} PUBLIC dl)
 endif()
