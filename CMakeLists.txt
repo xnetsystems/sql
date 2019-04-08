@@ -37,9 +37,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_libraries(${PROJECT_NAME} PUBLIC dl)
 endif()
 
-find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
-
 find_package(ice CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC ice::ice)
 
