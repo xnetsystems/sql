@@ -83,7 +83,7 @@ struct traits<date::day> {
 template <>
 struct traits<date::weekday> {
   static void set(sql::column& column, const date::weekday& value) {
-    column.set(static_cast<unsigned>(value));
+    column.set(value.c_encoding());
   }
   static date::weekday get(const sql::column& column) {
     return date::weekday(column.get<unsigned>());
