@@ -19,9 +19,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE src ${CMAKE_CURRENT_SOURCE_DI
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
+# TODO: Disable more stuff https://www.sqlite.org/compile.html
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-  SQLITE_THREADSAFE=2
-  SQLITE_DEFAULT_MEMSTATUS=1
+  SQLITE_THREADSAFE=2             # TODO: Change it to '0' and benchmark.
+  SQLITE_DEFAULT_MEMSTATUS=1      # TODO: Change it to '0' and test.
   SQLITE_LIKE_DOESNT_MATCH_BLOBS
   SQLITE_OMIT_DEPRECATED
   SQLITE_OMIT_PROGRESS_CALLBACK
