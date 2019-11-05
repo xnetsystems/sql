@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14.0 FATAL_ERROR)
 project(sql VERSION 0.9.6 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -19,9 +19,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE src ${CMAKE_CURRENT_SOURCE_DI
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
+# TODO: Disable more stuff https://www.sqlite.org/compile.html
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-  SQLITE_THREADSAFE=2
-  SQLITE_DEFAULT_MEMSTATUS=1
+  SQLITE_THREADSAFE=2             # TODO: Change it to '0' and benchmark.
+  SQLITE_DEFAULT_MEMSTATUS=1      # TODO: Change it to '0' and test.
   SQLITE_LIKE_DOESNT_MATCH_BLOBS
   SQLITE_OMIT_DEPRECATED
   SQLITE_OMIT_PROGRESS_CALLBACK
@@ -29,16 +30,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   SQLITE_OMIT_WAL
   SQLITE_ENABLE_COLUMN_METADATA)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  target_link_libraries(${PROJECT_NAME} PUBLIC c++fs)
-endif()
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_libraries(${PROJECT_NAME} PUBLIC dl)
 endif()
-
-find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
 
 find_package(ice CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC ice::ice)

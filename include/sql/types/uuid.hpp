@@ -1,6 +1,6 @@
 #pragma once
 #include <sql/types.hpp>
-#include <ice/uuid.h>
+#include <ice/uuid.hpp>
 
 namespace sql {
 
