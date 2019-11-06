@@ -1,21 +1,9 @@
-# root
 /*
-
-# dotfiles
 .*
-
-# include
 !/include/
-
-# res
-!/res/
-
-# src
 !/src/
-
-# files
 !/.clang-format
-!/.gitattributes
+!/.editorconfig
 !/.gitignore
 !/CMakeLists.txt
 !/CONTROL

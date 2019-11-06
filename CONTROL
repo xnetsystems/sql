@@ -1,4 +1,3 @@
 Source: sql
-Version: 3.26.0
+Version: 3.30.1
 Description: Wrapper library for SQLite3.
-Build-Depends: ice

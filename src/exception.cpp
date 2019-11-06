@@ -3,8 +3,7 @@
 
 namespace sql {
 
-exception::exception(const std::string& what) : std::runtime_error(what) {
-}
+exception::exception(const std::string& what) : std::runtime_error(what) {}
 
 exception::exception(const std::string& what, std::string_view query) : std::runtime_error(what) {
   if (!query.empty()) {

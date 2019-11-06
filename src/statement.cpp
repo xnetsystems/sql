@@ -1,5 +1,5 @@
-#include <sql/statement.hpp>
 #include <sql/exception.hpp>
+#include <sql/statement.hpp>
 #include <sqlite3.h>
 
 namespace sql {
@@ -17,18 +17,28 @@ std::string error(sqlite3_stmt* handle) {
 
 }  // namespace
 
-statement::statement() noexcept : handle_(nullptr, sqlite3_finalize) {
-}
+statement::statement() noexcept : handle_(nullptr, sqlite3_finalize) {}
 
 bool statement::step() {
   data_ = false;
   switch (auto ec = sqlite3_step(handle_.get())) {
-  case SQLITE_DONE: break;
-  case SQLITE_ROW: data_ = true; break;
-  case SQLITE_BUSY: throw exception("step error: timeout reached", query()); break;
-  case SQLITE_ERROR: throw exception("step error: " + error(handle_.get()), query()); break;
-  case SQLITE_MISUSE: throw exception("step error: " + error(handle_.get()), query()); break;
-  default: throw exception("step error: " + error(ec), query()); break;
+  case SQLITE_DONE:
+    break;
+  case SQLITE_ROW:
+    data_ = true;
+    break;
+  case SQLITE_BUSY:
+    throw exception("step error: timeout reached", query());
+    break;
+  case SQLITE_ERROR:
+    throw exception("step error: " + error(handle_.get()), query());
+    break;
+  case SQLITE_MISUSE:
+    throw exception("step error: " + error(handle_.get()), query());
+    break;
+  default:
+    throw exception("step error: " + error(ec), query());
+    break;
   }
   return data_;
 }
@@ -129,11 +139,16 @@ std::string_view statement::column_origin(std::size_t index) const noexcept {
 
 sql::type statement::type(std::size_t index) const noexcept {
   switch (auto type = sqlite3_column_type(handle_.get(), static_cast<int>(index))) {
-  case SQLITE_NULL: return sql::type::null;
-  case SQLITE_INTEGER: return sql::type::integer;
-  case SQLITE_FLOAT: return sql::type::real;
-  case SQLITE_TEXT: return sql::type::text;
-  case SQLITE_BLOB: return sql::type::blob;
+  case SQLITE_NULL:
+    return sql::type::null;
+  case SQLITE_INTEGER:
+    return sql::type::integer;
+  case SQLITE_FLOAT:
+    return sql::type::real;
+  case SQLITE_TEXT:
+    return sql::type::text;
+  case SQLITE_BLOB:
+    return sql::type::blob;
   }
   return sql::type::null;
 }

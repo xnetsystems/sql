@@ -2,11 +2,15 @@
 #include <sql/exception.hpp>
 #include <sql/lock.hpp>
 #include <sql/module.hpp>
-#include <ice/log.hpp>
 #include <sqlite3.h>
 #include <limits>
 #include <sstream>
 #include <vector>
+#include <cstdio>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #ifdef NDEBUG
 #define SQL_NOEXCEPT noexcept
@@ -16,6 +20,23 @@
 
 namespace sql {
 namespace {
+
+void report_impl(const char* str) noexcept {
+  std::fputs(str, stderr);
+#ifdef _WIN32
+  if (IsDebuggerPresent()) {
+    OutputDebugStringA(str);
+  }
+#endif
+}
+
+void report(const std::string& message, const char* details = nullptr) noexcept {
+  if (details) {
+    report_impl((message + ": " + details + "\n").data());
+  } else {
+    report_impl((message + "\n").data());
+  }
+}
 
 std::string error(sqlite3* handle) {
   if (const auto str = sqlite3_errmsg(handle)) {
@@ -27,8 +48,7 @@ std::string error(sqlite3* handle) {
 struct table_impl;
 
 struct cursor_impl : public sqlite3_vtab_cursor {
-  cursor_impl(std::unique_ptr<sql::cursor> impl, table_impl* parent) : impl(std::move(impl)), parent(parent) {
-  }
+  cursor_impl(std::unique_ptr<sql::cursor> impl, table_impl* parent) : impl(std::move(impl)), parent(parent) {}
   std::unique_ptr<sql::cursor> impl;
   table_impl* parent;
 };
@@ -36,8 +56,7 @@ struct cursor_impl : public sqlite3_vtab_cursor {
 struct module_impl;
 
 struct table_impl : public sqlite3_vtab {
-  table_impl(std::unique_ptr<sql::table> impl, module_impl* parent) : impl(std::move(impl)), parent(parent) {
-  }
+  table_impl(std::unique_ptr<sql::table> impl, module_impl* parent) : impl(std::move(impl)), parent(parent) {}
   std::unique_ptr<sql::table> impl;
   module_impl* parent;
 };
@@ -54,35 +73,34 @@ struct module_impl : public sqlite3_module {
     // Required module methods.
     //
 
-    xCreate = [](sqlite3* db, void* module, int argc, const char* const* argv, sqlite3_vtab** table, char** error)
-                SQL_NOEXCEPT {
+    xCreate = [](sqlite3* db, void* module, int argc, const char* const* argv, sqlite3_vtab** table, char** error) SQL_NOEXCEPT {
 #ifdef NDEBUG
-                  try {
+      try {
 #endif
-                    auto name = std::string_view(argv[0]);
-                    auto args = std::vector<std::string_view>();
-                    for (int i = 1; i < argc; i++) {
-                      args.emplace_back(argv[i]);
-                    }
-                    auto self = static_cast<module_impl*>(module);
-                    auto impl = self->impl->create(name, std::move(args));
-                    if (!impl) {
-                      return SQLITE_NOMEM;
-                    }
-                    *table = std::make_unique<table_impl>(std::move(impl), self).release();
+        auto name = std::string_view(argv[0]);
+        auto args = std::vector<std::string_view>();
+        for (int i = 1; i < argc; i++) {
+          args.emplace_back(argv[i]);
+        }
+        auto self = static_cast<module_impl*>(module);
+        auto impl = self->impl->create(name, std::move(args));
+        if (!impl) {
+          return SQLITE_NOMEM;
+        }
+        *table = std::make_unique<table_impl>(std::move(impl), self).release();
 #ifdef NDEBUG
-                  }
-                  catch (const std::exception& e) {
-                    ice::log::error() << "virtual table create error: " << e.what();
-                    return SQLITE_INTERNAL;
-                  }
-                  catch (...) {
-                    ice::log::error() << "virtual table create error";
-                    return SQLITE_INTERNAL;
-                  }
+      }
+      catch (const std::exception& e) {
+        report("virtual table create error", e.what());
+        return SQLITE_INTERNAL;
+      }
+      catch (...) {
+        report("virtual table create error");
+        return SQLITE_INTERNAL;
+      }
 #endif
-                  return SQLITE_OK;
-                };
+      return SQLITE_OK;
+    };
 
     xConnect = xCreate;
 
@@ -99,11 +117,11 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
       }
       catch (const std::exception& e) {
-        ice::log::error() << "virtual table index error: " << e.what();
+        report("virtual table index error", e.what());
         return SQLITE_INTERNAL;
       }
       catch (...) {
-        ice::log::error() << "virtual table index error";
+        report("virtual table index error");
         return SQLITE_INTERNAL;
       }
 #endif
@@ -132,11 +150,11 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
       }
       catch (const std::exception& e) {
-        ice::log::error() << "virtual table open cursor error: " << e.what();
+        report("virtual table open cursor error", e.what());
         return SQLITE_INTERNAL;
       }
       catch (...) {
-        ice::log::error() << "virtual table open cursor error";
+        report("virtual table open cursor error");
         return SQLITE_INTERNAL;
       }
 #endif
@@ -163,11 +181,11 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
       }
       catch (const std::exception& e) {
-        ice::log::error() << "virtual table cursor filter error: " << e.what();
+        report("virtual table cursor filter error", e.what());
         return SQLITE_INTERNAL;
       }
       catch (...) {
-        ice::log::error() << "virtual table cursor filter error";
+        report("virtual table cursor filter error");
         return SQLITE_INTERNAL;
       }
 #endif
@@ -183,11 +201,11 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
       }
       catch (const std::exception& e) {
-        ice::log::error() << "virtual table cursor next error: " << e.what();
+        report("virtual table cursor next error", e.what());
         return SQLITE_INTERNAL;
       }
       catch (...) {
-        ice::log::error() << "virtual table cursor next error";
+        report("virtual table cursor next error");
         return SQLITE_INTERNAL;
       }
 #endif
@@ -203,10 +221,10 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
       }
       catch (const std::exception& e) {
-        ice::log::warning() << "virtual table cursor eof error: " << e.what();
+        report("virtual table cursor eof error", e.what());
       }
       catch (...) {
-        ice::log::warning() << "virtual table cursor eof error";
+        report("virtual table cursor eof error");
       }
       return 1;
 #endif
@@ -221,11 +239,11 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
       }
       catch (const std::exception& e) {
-        ice::log::error() << "virtual table cursor column error: " << e.what();
+        report("virtual table cursor column error", e.what());
         return SQLITE_INTERNAL;
       }
       catch (...) {
-        ice::log::error() << "virtual table cursor column error";
+        report("virtual table cursor column error");
         return SQLITE_INTERNAL;
       }
 #endif
@@ -241,11 +259,11 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
       }
       catch (const std::exception& e) {
-        ice::log::error() << "virtual table cursor id error: " << e.what();
+        report("virtual table cursor id error", e.what());
         return SQLITE_INTERNAL;
       }
       catch (...) {
-        ice::log::error() << "virtual table cursor id error";
+        report("virtual table cursor id error");
         return SQLITE_INTERNAL;
       }
 #endif
@@ -283,11 +301,11 @@ struct module_impl : public sqlite3_module {
 #ifdef NDEBUG
         }
         catch (const std::exception& e) {
-          ice::log::error() << "virtual table update error: " << e.what();
+          report("virtual table update error", e.what());
           return SQLITE_INTERNAL;
         }
         catch (...) {
-          ice::log::error() << "virtual table update error";
+          report("virtual table update error");
           return SQLITE_INTERNAL;
         }
 #endif
@@ -346,9 +364,15 @@ struct module_impl : public sqlite3_module {
     for (int i = 0; i < argc; i++) {
       const auto arg = argv[i];
       switch (sqlite3_value_type(arg)) {
-      case SQLITE_NULL: values.emplace_back(null()); break;
-      case SQLITE_INTEGER: values.emplace_back(static_cast<integer>(sqlite3_value_int64(arg))); break;
-      case SQLITE_FLOAT: values.emplace_back(sqlite3_value_double(arg)); break;
+      case SQLITE_NULL:
+        values.emplace_back(null());
+        break;
+      case SQLITE_INTEGER:
+        values.emplace_back(static_cast<integer>(sqlite3_value_int64(arg)));
+        break;
+      case SQLITE_FLOAT:
+        values.emplace_back(sqlite3_value_double(arg));
+        break;
       case SQLITE_TEXT: {
         const auto data = reinterpret_cast<const char*>(sqlite3_value_text(arg));
         const auto size = static_cast<std::size_t>(sqlite3_value_bytes(arg));
@@ -366,16 +390,23 @@ struct module_impl : public sqlite3_module {
 
   static int set(sqlite3_context* context, const sql::value& value) {
     switch (value.index()) {
-    case 0: sqlite3_result_null(context); break;
-    case 1: sqlite3_result_int64(context, std::get<1>(value)); break;
-    case 2: sqlite3_result_double(context, std::get<2>(value)); break;
+    case 0:
+      sqlite3_result_null(context);
+      break;
+    case 1:
+      sqlite3_result_int64(context, std::get<1>(value));
+      break;
+    case 2:
+      sqlite3_result_double(context, std::get<2>(value));
+      break;
     case 3:
       sqlite3_result_text(context, std::get<3>(value).data(), static_cast<int>(std::get<3>(value).size()), nullptr);
       break;
     case 4:
       sqlite3_result_blob(context, std::get<4>(value).data(), static_cast<int>(std::get<4>(value).size()), nullptr);
       break;
-    default: return SQLITE_INTERNAL;
+    default:
+      return SQLITE_INTERNAL;
     }
     return SQLITE_OK;
   }
@@ -400,15 +431,15 @@ public:
   std::atomic<int> transaction = { 0 };
 };
 
-database::database() : impl_(std::make_unique<impl>()) {
-}
+database::database() : impl_(std::make_unique<impl>()) {}
 
 database::database(const std::filesystem::path& filename, flags flags) : database() {
   sqlite3* handle = nullptr;
-  auto ec = sqlite3_open_v2(filename.u8string().data(), &handle, static_cast<int>(flags), nullptr);
+  std::string u8filename = reinterpret_cast<const char*>(filename.u8string().data());
+  auto ec = sqlite3_open_v2(u8filename.data(), &handle, static_cast<int>(flags), nullptr);
   if (ec != SQLITE_OK) {
     sqlite3_close(handle);
-    throw exception("open error: " + error(ec) + ": " + filename.u8string());
+    throw exception("open error: " + error(ec) + ": " + u8filename);
   }
   impl_->handle.reset(handle);
   impl_->begin = prepare("BEGIN");
@@ -416,16 +447,14 @@ database::database(const std::filesystem::path& filename, flags flags) : databas
   impl_->rollback = prepare("ROLLBACK");
 }
 
-database::database(database&& other) noexcept : impl_(std::move(other.impl_)) {
-}
+database::database(database&& other) noexcept : impl_(std::move(other.impl_)) {}
 
 database& database::operator=(database&& other) noexcept {
   impl_ = std::move(other.impl_);
   return *this;
 }
 
-database::~database() {
-}
+database::~database() {}
 
 statement database::prepare(std::string_view query) {
   const auto data = query.data();
@@ -473,8 +502,7 @@ void database::create(const std::string& name, std::unique_ptr<sql::module> modu
     return;
   }
   auto ptr = std::make_unique<module_impl>(std::move(module));
-  if (sqlite3_create_module_v2(impl_->handle.get(), name.data(), ptr.get(), ptr.get(), module_destructor) !=
-    SQLITE_OK) {
+  if (sqlite3_create_module_v2(impl_->handle.get(), name.data(), ptr.get(), ptr.get(), module_destructor) != SQLITE_OK) {
     throw exception("failed to create module: " + name);
   }
   ptr.release();
