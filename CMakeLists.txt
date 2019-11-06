@@ -36,6 +36,7 @@ install(TARGETS sql EXPORT sql LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 install(EXPORT sql FILE sql-config.cmake NAMESPACE sql:: DESTINATION lib/cmake/sql)
 
 include(CMakePackageConfigHelpers)
+
 write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/sql-config-version.cmake
   VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion)
 
