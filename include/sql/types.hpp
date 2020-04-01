@@ -56,12 +56,12 @@ template <typename T>
 struct is_native_type {
   // clang-format off
   static constexpr bool value =
-    std::is_same_v<T, null> ||
-    std::is_same_v<T, integer> ||
-    std::is_same_v<T, real> ||
-    std::is_same_v<T, text> ||
-    std::is_same_v<T, blob> ||
-    std::is_same_v<T, value>;
+    std::is_same_v<T, sql::null> ||
+    std::is_same_v<T, sql::integer> ||
+    std::is_same_v<T, sql::real> ||
+    std::is_same_v<T, sql::text> ||
+    std::is_same_v<T, sql::blob> ||
+    std::is_same_v<T, sql::value>;
   // clang-format on
 };
 
