@@ -9,19 +9,20 @@
 #include <cstdio>
 
 #ifdef _WIN32
-#include <windows.h>
+#  include <windows.h>
 #endif
 
 #ifdef NDEBUG
-#define SQL_NOEXCEPT noexcept
+#  define NOEXCEPT noexcept
 #else
-#define SQL_NOEXCEPT
+#  define NOEXCEPT
 #endif
 
 namespace sql {
 namespace {
 
-void report_impl(const char* str) noexcept {
+void report_impl(const char* str) noexcept
+{
   std::fputs(str, stderr);
 #ifdef _WIN32
   if (IsDebuggerPresent()) {
@@ -30,7 +31,8 @@ void report_impl(const char* str) noexcept {
 #endif
 }
 
-void report(const std::string& message, const char* details = nullptr) noexcept {
+void report(const std::string& message, const char* details = nullptr) noexcept
+{
   if (details) {
     report_impl((message + ": " + details + "\n").data());
   } else {
@@ -38,7 +40,8 @@ void report(const std::string& message, const char* details = nullptr) noexcept 
   }
 }
 
-std::string error(sqlite3* handle) {
+std::string error(sqlite3* handle)
+{
   if (const auto str = sqlite3_errmsg(handle)) {
     return str;
   }
@@ -47,22 +50,30 @@ std::string error(sqlite3* handle) {
 
 struct table_impl;
 
-struct cursor_impl : public sqlite3_vtab_cursor {
-  cursor_impl(std::unique_ptr<sql::cursor> impl, table_impl* parent) : impl(std::move(impl)), parent(parent) {}
+struct cursor_impl : public sqlite3_vtab_cursor
+{
+  cursor_impl(std::unique_ptr<sql::cursor> impl, table_impl* parent)
+    : impl(std::move(impl)), parent(parent)
+  {}
   std::unique_ptr<sql::cursor> impl;
   table_impl* parent;
 };
 
 struct module_impl;
 
-struct table_impl : public sqlite3_vtab {
-  table_impl(std::unique_ptr<sql::table> impl, module_impl* parent) : impl(std::move(impl)), parent(parent) {}
+struct table_impl : public sqlite3_vtab
+{
+  table_impl(std::unique_ptr<sql::table> impl, module_impl* parent)
+    : impl(std::move(impl)), parent(parent)
+  {}
   std::unique_ptr<sql::table> impl;
   module_impl* parent;
 };
 
-struct module_impl : public sqlite3_module {
-  module_impl(std::unique_ptr<sql::module> impl) : sqlite3_module({}), impl(std::move(impl)) {
+struct module_impl : public sqlite3_module
+{
+  module_impl(std::unique_ptr<sql::module> impl) : sqlite3_module({}), impl(std::move(impl))
+  {
     //
     // Version number.
     //
@@ -73,34 +84,36 @@ struct module_impl : public sqlite3_module {
     // Required module methods.
     //
 
-    xCreate = [](sqlite3* db, void* module, int argc, const char* const* argv, sqlite3_vtab** table, char** error) SQL_NOEXCEPT {
+    xCreate =
+      [](sqlite3* db, void* module, int argc, const char* const* argv, sqlite3_vtab** table, char** error)
+        NOEXCEPT {
 #ifdef NDEBUG
-      try {
+          try {
 #endif
-        auto name = std::string_view(argv[0]);
-        auto args = std::vector<std::string_view>();
-        for (int i = 1; i < argc; i++) {
-          args.emplace_back(argv[i]);
-        }
-        auto self = static_cast<module_impl*>(module);
-        auto impl = self->impl->create(name, std::move(args));
-        if (!impl) {
-          return SQLITE_NOMEM;
-        }
-        *table = std::make_unique<table_impl>(std::move(impl), self).release();
+            auto name = std::string_view(argv[0]);
+            auto args = std::vector<std::string_view>();
+            for (int i = 1; i < argc; i++) {
+              args.emplace_back(argv[i]);
+            }
+            auto self = static_cast<module_impl*>(module);
+            auto impl = self->impl->create(name, std::move(args));
+            if (!impl) {
+              return SQLITE_NOMEM;
+            }
+            *table = std::make_unique<table_impl>(std::move(impl), self).release();
 #ifdef NDEBUG
-      }
-      catch (const std::exception& e) {
-        report("virtual table create error", e.what());
-        return SQLITE_INTERNAL;
-      }
-      catch (...) {
-        report("virtual table create error");
-        return SQLITE_INTERNAL;
-      }
+          }
+          catch (const std::exception& e) {
+            report("virtual table create error", e.what());
+            return SQLITE_INTERNAL;
+          }
+          catch (...) {
+            report("virtual table create error");
+            return SQLITE_INTERNAL;
+          }
 #endif
-      return SQLITE_OK;
-    };
+          return SQLITE_OK;
+        };
 
     xConnect = xCreate;
 
@@ -108,7 +121,7 @@ struct module_impl : public sqlite3_module {
     // Required table methods.
     //
 
-    xBestIndex = [](sqlite3_vtab* table, sqlite3_index_info* info) SQL_NOEXCEPT {
+    xBestIndex = [](sqlite3_vtab* table, sqlite3_index_info* info) NOEXCEPT {
 #ifdef NDEBUG
       try {
 #endif
@@ -128,7 +141,7 @@ struct module_impl : public sqlite3_module {
       return SQLITE_OK;
     };
 
-    xDisconnect = [](sqlite3_vtab* table) SQL_NOEXCEPT {
+    xDisconnect = [](sqlite3_vtab* table) NOEXCEPT {
       auto self = static_cast<table_impl*>(table);
       self->impl.reset();
       delete self;
@@ -137,7 +150,7 @@ struct module_impl : public sqlite3_module {
 
     xDestroy = xDisconnect;
 
-    xOpen = [](sqlite3_vtab* table, sqlite3_vtab_cursor** cursor) SQL_NOEXCEPT {
+    xOpen = [](sqlite3_vtab* table, sqlite3_vtab_cursor** cursor) NOEXCEPT {
 #ifdef NDEBUG
       try {
 #endif
@@ -165,34 +178,36 @@ struct module_impl : public sqlite3_module {
     // Required cursor methods.
     //
 
-    xClose = [](sqlite3_vtab_cursor* cursor) SQL_NOEXCEPT {
+    xClose = [](sqlite3_vtab_cursor* cursor) NOEXCEPT {
       auto self = static_cast<cursor_impl*>(cursor);
       self->impl.reset();
       delete self;
       return SQLITE_OK;
     };
 
-    xFilter = [](sqlite3_vtab_cursor* cursor, int index, const char* str, int argc, sqlite3_value** argv) SQL_NOEXCEPT {
+    xFilter =
+      [](sqlite3_vtab_cursor* cursor, int index, const char* str, int argc, sqlite3_value** argv)
+        NOEXCEPT {
 #ifdef NDEBUG
-      try {
+          try {
 #endif
-        auto self = static_cast<cursor_impl*>(cursor);
-        self->impl->filter(str, get(argc, argv));
+            auto self = static_cast<cursor_impl*>(cursor);
+            self->impl->filter(str, get(argc, argv));
 #ifdef NDEBUG
-      }
-      catch (const std::exception& e) {
-        report("virtual table cursor filter error", e.what());
-        return SQLITE_INTERNAL;
-      }
-      catch (...) {
-        report("virtual table cursor filter error");
-        return SQLITE_INTERNAL;
-      }
+          }
+          catch (const std::exception& e) {
+            report("virtual table cursor filter error", e.what());
+            return SQLITE_INTERNAL;
+          }
+          catch (...) {
+            report("virtual table cursor filter error");
+            return SQLITE_INTERNAL;
+          }
 #endif
-      return SQLITE_OK;
-    };
+          return SQLITE_OK;
+        };
 
-    xNext = [](sqlite3_vtab_cursor* cursor) SQL_NOEXCEPT {
+    xNext = [](sqlite3_vtab_cursor* cursor) NOEXCEPT {
 #ifdef NDEBUG
       try {
 #endif
@@ -212,7 +227,7 @@ struct module_impl : public sqlite3_module {
       return SQLITE_OK;
     };
 
-    xEof = [](sqlite3_vtab_cursor* cursor) SQL_NOEXCEPT {
+    xEof = [](sqlite3_vtab_cursor* cursor) NOEXCEPT {
 #ifdef NDEBUG
       try {
 #endif
@@ -230,7 +245,7 @@ struct module_impl : public sqlite3_module {
 #endif
     };
 
-    xColumn = [](sqlite3_vtab_cursor* cursor, sqlite3_context* context, int index) SQL_NOEXCEPT {
+    xColumn = [](sqlite3_vtab_cursor* cursor, sqlite3_context* context, int index) NOEXCEPT {
 #ifdef NDEBUG
       try {
 #endif
@@ -250,7 +265,7 @@ struct module_impl : public sqlite3_module {
       return SQLITE_OK;
     };
 
-    xRowid = [](sqlite3_vtab_cursor* cursor, sqlite3_int64* id) SQL_NOEXCEPT {
+    xRowid = [](sqlite3_vtab_cursor* cursor, sqlite3_int64* id) NOEXCEPT {
 #ifdef NDEBUG
       try {
 #endif
@@ -275,7 +290,7 @@ struct module_impl : public sqlite3_module {
     //
 
     if (this->impl->writable()) {
-      xUpdate = [](sqlite3_vtab* table, int argc, sqlite3_value** argv, sqlite3_int64* id) SQL_NOEXCEPT {
+      xUpdate = [](sqlite3_vtab* table, int argc, sqlite3_value** argv, sqlite3_int64* id) NOEXCEPT {
 #ifdef NDEBUG
         try {
 #endif
@@ -297,7 +312,8 @@ struct module_impl : public sqlite3_module {
           }
 
           // Process update request.
-          return static_cast<int>(self->impl->update(*id = sqlite3_value_int64(argv[0]), get(argc - 2, argv + 2)));
+          return static_cast<int>(
+            self->impl->update(*id = sqlite3_value_int64(argv[0]), get(argc - 2, argv + 2)));
 #ifdef NDEBUG
         }
         catch (const std::exception& e) {
@@ -313,53 +329,54 @@ struct module_impl : public sqlite3_module {
       };
     }
 
-    //xBegin = [](sqlite3_vtab* table) SQL_NOEXCEPT {
+    //xBegin = [](sqlite3_vtab* table) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xSync = [](sqlite3_vtab* table) SQL_NOEXCEPT {
+    //xSync = [](sqlite3_vtab* table) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xCommit = [](sqlite3_vtab* table) SQL_NOEXCEPT {
+    //xCommit = [](sqlite3_vtab* table) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xRollback = [](sqlite3_vtab* table) SQL_NOEXCEPT {
+    //xRollback = [](sqlite3_vtab* table) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xFindFunction = [](sqlite3_vtab* table, int arg, const char* name, void(**callback)(sqlite3_context* context, int, sqlite3_value** value), void** args) SQL_NOEXCEPT {
+    //xFindFunction = [](sqlite3_vtab* table, int arg, const char* name, void(**callback)(sqlite3_context* context, int, sqlite3_value** value), void** args) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xRename = [](sqlite3_vtab* table, const char* name) SQL_NOEXCEPT {
+    //xRename = [](sqlite3_vtab* table, const char* name) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xSavepoint = [](sqlite3_vtab* table, int index) SQL_NOEXCEPT {
+    //xSavepoint = [](sqlite3_vtab* table, int index) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xRelease = [](sqlite3_vtab* table, int index) SQL_NOEXCEPT {
+    //xRelease = [](sqlite3_vtab* table, int index) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
 
-    //xRollbackTo = [](sqlite3_vtab* table, int index) SQL_NOEXCEPT {
+    //xRollbackTo = [](sqlite3_vtab* table, int index) NOEXCEPT {
     //  auto self = static_cast<table_impl*>(table);
     //  return SQLITE_OK;
     //};
   }
 
-  static std::vector<sql::value> get(int argc, sqlite3_value** argv) {
+  static std::vector<sql::value> get(int argc, sqlite3_value** argv)
+  {
     std::vector<sql::value> values;
     for (int i = 0; i < argc; i++) {
       const auto arg = argv[i];
@@ -388,7 +405,8 @@ struct module_impl : public sqlite3_module {
     return values;
   }
 
-  static int set(sqlite3_context* context, const sql::value& value) {
+  static int set(sqlite3_context* context, const sql::value& value)
+  {
     switch (value.index()) {
     case 0:
       sqlite3_result_null(context);
@@ -400,10 +418,12 @@ struct module_impl : public sqlite3_module {
       sqlite3_result_double(context, std::get<2>(value));
       break;
     case 3:
-      sqlite3_result_text(context, std::get<3>(value).data(), static_cast<int>(std::get<3>(value).size()), nullptr);
+      sqlite3_result_text(
+        context, std::get<3>(value).data(), static_cast<int>(std::get<3>(value).size()), nullptr);
       break;
     case 4:
-      sqlite3_result_blob(context, std::get<4>(value).data(), static_cast<int>(std::get<4>(value).size()), nullptr);
+      sqlite3_result_blob(
+        context, std::get<4>(value).data(), static_cast<int>(std::get<4>(value).size()), nullptr);
       break;
     default:
       return SQLITE_INTERNAL;
@@ -415,13 +435,15 @@ private:
   std::unique_ptr<sql::module> impl;
 };
 
-void module_destructor(void* module) {
+void module_destructor(void* module)
+{
   delete static_cast<module_impl*>(module);
 }
 
 }  // namespace
 
-class database::impl {
+class database::impl
+{
 public:
   database_handle handle = database_handle(nullptr, sqlite3_close);
   statement begin;
@@ -433,7 +455,8 @@ public:
 
 database::database() : impl_(std::make_unique<impl>()) {}
 
-database::database(const std::filesystem::path& filename, flags flags) : database() {
+database::database(const std::filesystem::path& filename, flags flags) : database()
+{
   sqlite3* handle = nullptr;
   std::string u8filename = reinterpret_cast<const char*>(filename.u8string().data());
   auto ec = sqlite3_open_v2(u8filename.data(), &handle, static_cast<int>(flags), nullptr);
@@ -449,21 +472,24 @@ database::database(const std::filesystem::path& filename, flags flags) : databas
 
 database::database(database&& other) noexcept : impl_(std::move(other.impl_)) {}
 
-database& database::operator=(database&& other) noexcept {
+database& database::operator=(database&& other) noexcept
+{
   impl_ = std::move(other.impl_);
   return *this;
 }
 
 database::~database() {}
 
-statement database::prepare(std::string_view query) {
+statement database::prepare(std::string_view query)
+{
   const auto data = query.data();
   const auto size = query.size();
   if (size > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
     throw exception("query size error");
   }
   sqlite3_stmt* handle = nullptr;
-  if (sqlite3_prepare_v2(impl_->handle.get(), data, static_cast<int>(size), &handle, nullptr) != SQLITE_OK) {
+  if (sqlite3_prepare_v2(impl_->handle.get(), data, static_cast<int>(size), &handle, nullptr) != SQLITE_OK)
+  {
     sqlite3_finalize(handle);
     throw exception("prepare error: " + error(impl_->handle.get()), query);
   }
@@ -472,7 +498,8 @@ statement database::prepare(std::string_view query) {
   return stmt;
 }
 
-std::size_t database::changes() const noexcept {
+std::size_t database::changes() const noexcept
+{
   const auto changes = sqlite3_changes(impl_->handle.get());
   if (changes > 0) {
     return static_cast<std::size_t>(changes);
@@ -480,7 +507,8 @@ std::size_t database::changes() const noexcept {
   return 0;
 }
 
-sql::version database::version() {
+sql::version database::version()
+{
   if (impl_) {
     std::lock_guard<std::recursive_mutex> lock(impl_->mutex);
     if (const auto& row = operator()("PRAGMA user_version")) {
@@ -490,52 +518,61 @@ sql::version database::version() {
   return {};
 }
 
-void database::version(sql::version version) {
+void database::version(sql::version version)
+{
   std::ostringstream oss;
   oss << static_cast<std::int64_t>(version.value());
   std::lock_guard<std::recursive_mutex> lock(impl_->mutex);
   operator()("PRAGMA user_version = " + oss.str());
 }
 
-void database::create(const std::string& name, std::unique_ptr<sql::module> module) {
+void database::create(const std::string& name, std::unique_ptr<sql::module> module)
+{
   if (!module) {
     return;
   }
   auto ptr = std::make_unique<module_impl>(std::move(module));
-  if (sqlite3_create_module_v2(impl_->handle.get(), name.data(), ptr.get(), ptr.get(), module_destructor) != SQLITE_OK) {
+  if (sqlite3_create_module_v2(impl_->handle.get(), name.data(), ptr.get(), ptr.get(), module_destructor) != SQLITE_OK)
+  {
     throw exception("failed to create module: " + name);
   }
   ptr.release();
 }
 
-void database::declare(const std::string& format) {
+void database::declare(const std::string& format)
+{
   auto ec = sqlite3_declare_vtab(impl_->handle.get(), format.c_str());
   if (ec != SQLITE_OK) {
     throw exception("table format error: " + error(ec), format);
   }
 }
 
-database_handle& database::handle() noexcept {
+database_handle& database::handle() noexcept
+{
   return impl_->handle;
 }
 
-std::recursive_mutex& database::mutex() noexcept {
+std::recursive_mutex& database::mutex() noexcept
+{
   return impl_->mutex;
 }
 
-void database::begin() {
+void database::begin()
+{
   if (impl_->transaction.fetch_add(1) == 0) {
     impl_->begin();
   }
 }
 
-void database::commit() {
+void database::commit()
+{
   if (impl_->transaction.fetch_sub(1) == 1) {
     impl_->commit();
   }
 }
 
-void database::rollback() {
+void database::rollback()
+{
   if (impl_->transaction.fetch_sub(1) == 1) {
     impl_->rollback();
   }

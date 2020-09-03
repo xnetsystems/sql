@@ -5,13 +5,16 @@
 
 namespace sql {
 
-class transaction {
+class transaction
+{
 public:
-  transaction(database& db) : lock_(db) {
+  transaction(database& db) : lock_(db)
+  {
     lock_.db().begin();
   }
 
-  ~transaction() noexcept(false) {
+  ~transaction() noexcept(false)
+  {
     if (std::uncaught_exceptions()) {
       try {
         lock_.db().rollback();

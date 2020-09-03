@@ -23,7 +23,8 @@ using database_handle = std::unique_ptr<sqlite3, int (*)(sqlite3*)>;
 
 class module;
 
-class database {
+class database
+{
 public:
   database();
   database(const std::filesystem::path& filename, flags flags = flags::read_write_create);
@@ -34,7 +35,8 @@ public:
   ~database();
 
   template <typename... T>
-  statement operator()(std::string_view query, T&&... args) {
+  statement operator()(std::string_view query, T&&... args)
+  {
     auto statement = prepare(query);
     statement(std::forward<T>(args)...);
     return statement;

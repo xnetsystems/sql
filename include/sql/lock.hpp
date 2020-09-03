@@ -4,12 +4,13 @@
 
 namespace sql {
 
-class lock {
+class lock
+{
 public:
-  lock(database& db) : db_(db), lock_(db.mutex()) {
-  }
+  lock(database& db) : db_(db), lock_(db.mutex()) {}
 
-  database& db() noexcept {
+  database& db() noexcept
+  {
     return db_;
   }
 

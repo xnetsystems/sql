@@ -53,7 +53,8 @@ using blob = std::basic_string_view<unsigned char>;
 using value = std::variant<null, integer, real, text, blob>;
 
 template <typename T>
-struct is_native_type {
+struct is_native_type
+{
   // clang-format off
   static constexpr bool value =
     std::is_same_v<T, sql::null> ||
@@ -69,36 +70,42 @@ template <typename T>
 constexpr bool is_native_type_v = is_native_type<T>::value;
 
 template <typename Statement>
-class basic_column {
+class basic_column
+{
 public:
-  explicit basic_column(const Statement& statement, std::size_t index) noexcept :
-    statement_(const_cast<Statement*>(&statement)), index_(index) {
-  }
+  explicit basic_column(const Statement& statement, std::size_t index) noexcept
+    : statement_(const_cast<Statement*>(&statement)), index_(index)
+  {}
 
   basic_column(basic_column&& other) = delete;
   basic_column(const basic_column& other) = delete;
   basic_column& operator=(basic_column&& other) = delete;
   basic_column& operator=(const basic_column& other) = delete;
 
-  operator bool() const {
+  operator bool() const
+  {
     return type() != sql::type::null;
   }
 
-  std::size_t index() const noexcept {
+  std::size_t index() const noexcept
+  {
     return index_;
   }
 
-  sql::type type() const noexcept {
+  sql::type type() const noexcept
+  {
     return statement_->type(index_);
   }
 
   template <typename T>
-  T get() const {
+  T get() const
+  {
     return statement_->template get<T>(index_);
   }
 
   template <typename... T>
-  void set(T&&... values) {
+  void set(T&&... values)
+  {
     statement_->bind(index_, std::forward<T>(values)...);
   }
 
@@ -112,61 +119,76 @@ class statement;
 using column = basic_column<statement>;
 
 template <typename T>
-struct traits {
+struct traits
+{
   template <typename U = T>
-  static std::enable_if_t<std::is_integral_v<U>, void> set(sql::column& column, U value) {
+  static std::enable_if_t<std::is_integral_v<U>, void> set(sql::column& column, U value)
+  {
     column.set(static_cast<integer>(value));
   }
 
   template <typename U = T>
-  static std::enable_if_t<std::is_floating_point_v<U>, void> set(sql::column& column, U value) {
+  static std::enable_if_t<std::is_floating_point_v<U>, void> set(sql::column& column, U value)
+  {
     column.set(static_cast<real>(value));
   }
 
   template <typename U = T>
-  static std::enable_if_t<std::is_integral_v<U>, U> get(const sql::column& column) {
+  static std::enable_if_t<std::is_integral_v<U>, U> get(const sql::column& column)
+  {
     return static_cast<U>(column.get<integer>());
   }
 
   template <typename U = T>
-  static std::enable_if_t<std::is_floating_point_v<U>, U> get(const sql::column& column) {
+  static std::enable_if_t<std::is_floating_point_v<U>, U> get(const sql::column& column)
+  {
     return static_cast<U>(column.get<real>());
   }
 };
 
 template <>
-struct traits<bool> {
-  static void set(sql::column& column, bool value) {
+struct traits<bool>
+{
+  static void set(sql::column& column, bool value)
+  {
     column.set(value ? 1LL : 0LL);
   }
-  static bool get(const sql::column& column) {
+  static bool get(const sql::column& column)
+  {
     return column.get<integer>() ? true : false;
   }
 };
 
 template <>
-struct traits<std::string> {
-  static void set(sql::column& column, std::string&& value) {
+struct traits<std::string>
+{
+  static void set(sql::column& column, std::string&& value)
+  {
     column.set(text(value), true);
   }
-  static void set(sql::column& column, const std::string& value) {
+  static void set(sql::column& column, const std::string& value)
+  {
     column.set(text(value), false);
   }
-  static std::string get(const sql::column& column) {
+  static std::string get(const sql::column& column)
+  {
     return std::string(column.get<text>());
   }
 };
 
 template <typename T>
-struct traits<std::optional<T>> {
-  static void set(sql::column& column, const std::optional<T>& value) {
+struct traits<std::optional<T>>
+{
+  static void set(sql::column& column, const std::optional<T>& value)
+  {
     if (value) {
       column.set(value.value());
     } else {
       column.set();
     }
   }
-  static std::optional<T> get(const sql::column& column) {
+  static std::optional<T> get(const sql::column& column)
+  {
     if (column) {
       return column.template get<T>();
     }

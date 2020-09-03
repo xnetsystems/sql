@@ -12,7 +12,8 @@ struct sqlite3_index_info;
 
 namespace sql {
 
-class cursor {
+class cursor
+{
 public:
   virtual ~cursor() = default;
 
@@ -32,7 +33,8 @@ public:
   virtual std::int64_t id() = 0;
 };
 
-class table {
+class table
+{
 public:
   virtual ~table() = default;
 
@@ -43,32 +45,38 @@ public:
   virtual std::unique_ptr<sql::cursor> open() = 0;
 
   // Removes row (only used if the table module is writable).
-  virtual sql::code remove(std::int64_t id) {
+  virtual sql::code remove(std::int64_t id)
+  {
     return sql::code::error;
   }
 
   // Inserts row (only used if the table module is writable).
-  virtual sql::code insert(const std::vector<sql::value>& values, std::int64_t& id) {
+  virtual sql::code insert(const std::vector<sql::value>& values, std::int64_t& id)
+  {
     return sql::code::error;
   }
 
   // Updates row (only used if the table module is writable).
-  virtual sql::code update(std::int64_t id, const std::vector<sql::value>& values) {
+  virtual sql::code update(std::int64_t id, const std::vector<sql::value>& values)
+  {
     return sql::code::error;
   }
 };
 
-class module {
+class module
+{
 public:
   virtual ~module() = default;
 
   // Created tables are writable.
-  virtual bool writable() {
+  virtual bool writable()
+  {
     return false;
   }
 
   // Creates a new table.
-  virtual std::unique_ptr<sql::table> create(std::string_view name, std::vector<std::string_view> args) = 0;
+  virtual std::unique_ptr<sql::table>
+  create(std::string_view name, std::vector<std::string_view> args) = 0;
 };
 
 }  // namespace sql

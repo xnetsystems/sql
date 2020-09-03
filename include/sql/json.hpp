@@ -1,7 +1,7 @@
 #pragma once
+#include <ice/base.hpp>
 #include <nlohmann/json.hpp>
 #include <sql/statement.hpp>
-#include <ice/base.hpp>
 
 namespace nlohmann {
 

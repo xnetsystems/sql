@@ -15,7 +15,8 @@ namespace sql {
 
 using statement_handle = std::unique_ptr<sqlite3_stmt, int (*)(sqlite3_stmt*)>;
 
-class statement {
+class statement
+{
 public:
   statement() noexcept;
   statement(statement&& other) = default;
@@ -32,19 +33,22 @@ public:
   void bind(std::size_t index, blob value, bool copy = true);
 
   template <typename T>
-  void bind(std::size_t index, T&& value) {
+  void bind(std::size_t index, T&& value)
+  {
     sql::column column(*this, index);
     traits<std::decay_t<T>>::set(column, std::forward<T>(value));
   }
 
-  statement& operator()() {
+  statement& operator()()
+  {
     reset();
     step();
     return *this;
   }
 
   template <typename... T>
-  statement& operator()(T&&... values) {
+  statement& operator()(T&&... values)
+  {
     reset();
     binder<statement> binder(*this);
     binder.bind(std::forward<T>(values)...);
@@ -52,11 +56,13 @@ public:
     return *this;
   }
 
-  iterator<statement> begin() {
+  iterator<statement> begin()
+  {
     return iterator<statement>(data_ ? this : nullptr);
   }
 
-  static iterator<statement> end() noexcept {
+  static iterator<statement> end() noexcept
+  {
     return iterator<statement>();
   }
 
@@ -69,13 +75,15 @@ public:
   sql::type type(std::size_t index) const noexcept;
 
   template <typename T>
-  T get(std::size_t index) const {
+  T get(std::size_t index) const
+  {
     const sql::column column(*this, index);
     return traits<T>::get(column);
   }
 
   template <typename T>
-  T get(std::string_view name) const {
+  T get(std::string_view name) const
+  {
     for (std::size_t i = 0, count = column_count(); i < count; i++) {
       if (name.compare(column_name(i)) == 0) {
         return get<T>(i);
@@ -84,13 +92,15 @@ public:
     throw exception("invalid column name: " + std::string(name));
   }
 
-  statement_handle& handle() noexcept {
+  statement_handle& handle() noexcept
+  {
     return handle_;
   }
 
   std::string_view query() const;
 
-  operator bool() const noexcept {
+  operator bool() const noexcept
+  {
     return handle_ && data_ ? true : false;
   }
 

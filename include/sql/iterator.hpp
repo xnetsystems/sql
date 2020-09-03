@@ -4,7 +4,8 @@
 namespace sql {
 
 template <typename Statement>
-class iterator {
+class iterator
+{
 public:
   using reference = Statement&;
   using value_type = Statement;
@@ -12,25 +13,28 @@ public:
   using iterator_category = std::input_iterator_tag;
 
   explicit iterator() noexcept = default;
-  explicit iterator(Statement* statement) noexcept : value_(statement) {
-  }
+  explicit iterator(Statement* statement) noexcept : value_(statement) {}
 
-  iterator& operator++() {
+  iterator& operator++()
+  {
     if (value_ && !value_->step()) {
       value_ = nullptr;
     }
     return *this;
   }
 
-  bool operator==(const iterator& other) const noexcept {
+  bool operator==(const iterator& other) const noexcept
+  {
     return value_ == other.value_;
   }
 
-  bool operator!=(const iterator& other) const noexcept {
+  bool operator!=(const iterator& other) const noexcept
+  {
     return value_ != other.value_;
   }
 
-  reference operator*() noexcept {
+  reference operator*() noexcept
+  {
     return *value_;
   }
 

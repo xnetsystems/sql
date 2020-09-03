@@ -8,7 +8,8 @@ namespace {
 static const char empty_text[1] = { '\0' };
 static const unsigned char empty_blob[1] = { 0 };
 
-std::string error(sqlite3_stmt* handle) {
+std::string error(sqlite3_stmt* handle)
+{
   if (const auto str = sqlite3_errmsg(reinterpret_cast<sqlite3*>(handle))) {
     return str;
   }
@@ -19,7 +20,8 @@ std::string error(sqlite3_stmt* handle) {
 
 statement::statement() noexcept : handle_(nullptr, sqlite3_finalize) {}
 
-bool statement::step() {
+bool statement::step()
+{
   data_ = false;
   switch (auto ec = sqlite3_step(handle_.get())) {
   case SQLITE_DONE:
@@ -43,31 +45,36 @@ bool statement::step() {
   return data_;
 }
 
-void statement::reset() noexcept {
+void statement::reset() noexcept
+{
   if (handle_) {
     sqlite3_reset(handle_.get());
   }
 }
 
-void statement::bind(std::size_t index, null) {
+void statement::bind(std::size_t index, null)
+{
   if (auto ec = sqlite3_bind_null(handle_.get(), static_cast<int>(index + 1))) {
     throw exception("bind null error: index " + std::to_string(index) + ": " + error(ec), query());
   }
 }
 
-void statement::bind(std::size_t index, integer value) {
+void statement::bind(std::size_t index, integer value)
+{
   if (auto ec = sqlite3_bind_int64(handle_.get(), static_cast<int>(index + 1), value)) {
     throw exception("bind integer error: index " + std::to_string(index) + ": " + error(ec), query());
   }
 }
 
-void statement::bind(std::size_t index, real value) {
+void statement::bind(std::size_t index, real value)
+{
   if (auto ec = sqlite3_bind_double(handle_.get(), static_cast<int>(index + 1), value)) {
     throw exception("bind real error: index " + std::to_string(index) + ": " + error(ec), query());
   }
 }
 
-void statement::bind(std::size_t index, text value, bool copy) {
+void statement::bind(std::size_t index, text value, bool copy)
+{
   auto data = value.data();
   auto size = value.size();
   if (!data || size == 0) {
@@ -76,12 +83,14 @@ void statement::bind(std::size_t index, text value, bool copy) {
     copy = false;
   }
   auto flags = copy ? SQLITE_TRANSIENT : SQLITE_STATIC;
-  if (auto ec = sqlite3_bind_text64(handle_.get(), static_cast<int>(index + 1), data, size, flags, SQLITE_UTF8)) {
+  if (auto ec = sqlite3_bind_text64(handle_.get(), static_cast<int>(index + 1), data, size, flags, SQLITE_UTF8))
+  {
     throw exception("bind text error: index " + std::to_string(index) + ": " + error(ec), query());
   }
 }
 
-void statement::bind(std::size_t index, blob value, bool copy) {
+void statement::bind(std::size_t index, blob value, bool copy)
+{
   auto data = value.data();
   auto size = value.size();
   if (!data) {
@@ -95,7 +104,8 @@ void statement::bind(std::size_t index, blob value, bool copy) {
   }
 }
 
-std::size_t statement::column_count() const noexcept {
+std::size_t statement::column_count() const noexcept
+{
   const auto columns = sqlite3_column_count(handle_.get());
   if (columns > 0) {
     return static_cast<std::size_t>(columns);
@@ -103,14 +113,16 @@ std::size_t statement::column_count() const noexcept {
   return 0;
 }
 
-std::string_view statement::column_name(std::size_t index) const noexcept {
+std::string_view statement::column_name(std::size_t index) const noexcept
+{
   if (auto str = sqlite3_column_name(handle_.get(), static_cast<int>(index))) {
     return str;
   }
   return {};
 }
 
-std::string_view statement::column_type(std::size_t index) const noexcept {
+std::string_view statement::column_type(std::size_t index) const noexcept
+{
 #ifndef SQLITE_OMIT_DECLTYPE
   if (auto str = sqlite3_column_decltype(handle_.get(), static_cast<int>(index))) {
     return str;
@@ -119,7 +131,8 @@ std::string_view statement::column_type(std::size_t index) const noexcept {
   return {};
 }
 
-std::string_view statement::column_table(std::size_t index) const noexcept {
+std::string_view statement::column_table(std::size_t index) const noexcept
+{
 #ifdef SQLITE_ENABLE_COLUMN_METADATA
   if (auto str = sqlite3_column_table_name(handle_.get(), static_cast<int>(index))) {
     return str;
@@ -128,7 +141,8 @@ std::string_view statement::column_table(std::size_t index) const noexcept {
   return {};
 }
 
-std::string_view statement::column_origin(std::size_t index) const noexcept {
+std::string_view statement::column_origin(std::size_t index) const noexcept
+{
 #ifdef SQLITE_ENABLE_COLUMN_METADATA
   if (auto str = sqlite3_column_origin_name(handle_.get(), static_cast<int>(index))) {
     return str;
@@ -137,7 +151,8 @@ std::string_view statement::column_origin(std::size_t index) const noexcept {
   return {};
 }
 
-sql::type statement::type(std::size_t index) const noexcept {
+sql::type statement::type(std::size_t index) const noexcept
+{
   switch (auto type = sqlite3_column_type(handle_.get(), static_cast<int>(index))) {
   case SQLITE_NULL:
     return sql::type::null;
@@ -153,7 +168,8 @@ sql::type statement::type(std::size_t index) const noexcept {
   return sql::type::null;
 }
 
-std::string_view statement::query() const {
+std::string_view statement::query() const
+{
   if (auto str = sqlite3_expanded_sql(handle_.get())) {
     return str;
   }
@@ -164,22 +180,26 @@ std::string_view statement::query() const {
 }
 
 template <>
-null statement::get<null>(std::size_t index) const {
+null statement::get<null>(std::size_t index) const
+{
   return nullptr;
 }
 
 template <>
-integer statement::get<integer>(std::size_t index) const {
+integer statement::get<integer>(std::size_t index) const
+{
   return sqlite3_column_int64(handle_.get(), static_cast<int>(index));
 }
 
 template <>
-real statement::get<real>(std::size_t index) const {
+real statement::get<real>(std::size_t index) const
+{
   return sqlite3_column_double(handle_.get(), static_cast<int>(index));
 }
 
 template <>
-text statement::get<text>(std::size_t index) const {
+text statement::get<text>(std::size_t index) const
+{
   const auto data = sqlite3_column_text(handle_.get(), static_cast<int>(index));
   if (!data) {
     return {};
@@ -192,7 +212,8 @@ text statement::get<text>(std::size_t index) const {
 }
 
 template <>
-blob statement::get<blob>(std::size_t index) const {
+blob statement::get<blob>(std::size_t index) const
+{
   const auto data = sqlite3_column_blob(handle_.get(), static_cast<int>(index));
   if (!data) {
     return {};
