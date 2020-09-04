@@ -75,8 +75,9 @@ public:
   }
 
   // Creates a new table.
-  virtual std::unique_ptr<sql::table>
-  create(std::string_view name, std::vector<std::string_view> args) = 0;
+  virtual std::unique_ptr<sql::table> create(
+    std::string_view name,
+    std::vector<std::string_view> args) = 0;
 };
 
 }  // namespace sql
