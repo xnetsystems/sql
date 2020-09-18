@@ -9,5 +9,7 @@
 !/CMakeLists.txt
 !/CONTROL
 !/license.txt
+!/make.cmd
+!/makefile
 !/portfile.cmake
 !/readme.md
