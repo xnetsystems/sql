@@ -44,29 +44,29 @@ public:
   // Creates a new cursor.
   virtual std::unique_ptr<sql::cursor> open() = 0;
 
-  // Removes row (only used if the table module is writable).
+  // Removes row (only used if the table component is writable).
   virtual sql::code remove(std::int64_t id)
   {
     return sql::code::error;
   }
 
-  // Inserts row (only used if the table module is writable).
+  // Inserts row (only used if the table component is writable).
   virtual sql::code insert(const std::vector<sql::value>& values, std::int64_t& id)
   {
     return sql::code::error;
   }
 
-  // Updates row (only used if the table module is writable).
+  // Updates row (only used if the table component is writable).
   virtual sql::code update(std::int64_t id, const std::vector<sql::value>& values)
   {
     return sql::code::error;
   }
 };
 
-class module
+class component
 {
 public:
-  virtual ~module() = default;
+  virtual ~component() = default;
 
   // Created tables are writable.
   virtual bool writable()

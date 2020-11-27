@@ -21,7 +21,7 @@ enum class flags {
 
 using database_handle = std::unique_ptr<sqlite3, int (*)(sqlite3*)>;
 
-class module;
+class component;
 
 class database
 {
@@ -47,7 +47,7 @@ public:
 
   sql::version version();
   void version(sql::version version);
-  void create(const std::string& name, std::unique_ptr<sql::module> module);
+  void create(const std::string& name, std::unique_ptr<sql::component> component);
   void declare(const std::string& format);
 
   database_handle& handle() noexcept;

@@ -1,7 +1,7 @@
 #include <sql/database.hpp>
+#include <sql/component.hpp>
 #include <sql/exception.hpp>
 #include <sql/lock.hpp>
-#include <sql/module.hpp>
 #include <sqlite3.h>
 #include <limits>
 #include <sstream>
@@ -59,20 +59,20 @@ struct cursor_impl : public sqlite3_vtab_cursor
   table_impl* parent;
 };
 
-struct module_impl;
+struct component_impl;
 
 struct table_impl : public sqlite3_vtab
 {
-  table_impl(std::unique_ptr<sql::table> impl, module_impl* parent)
+  table_impl(std::unique_ptr<sql::table> impl, component_impl* parent)
     : impl(std::move(impl)), parent(parent)
   {}
   std::unique_ptr<sql::table> impl;
-  module_impl* parent;
+  component_impl* parent;
 };
 
-struct module_impl : public sqlite3_module
+struct component_impl : public sqlite3_module
 {
-  module_impl(std::unique_ptr<sql::module> impl) : sqlite3_module({}), impl(std::move(impl))
+  component_impl(std::unique_ptr<sql::component> impl) : sqlite3_module({}), impl(std::move(impl))
   {
     //
     // Version number.
@@ -81,11 +81,11 @@ struct module_impl : public sqlite3_module
     iVersion = 1;
 
     //
-    // Required module methods.
+    // Required component methods.
     //
 
     xCreate =
-      [](sqlite3* db, void* module, int argc, const char* const* argv, sqlite3_vtab** table, char** error)
+      [](sqlite3* db, void* component, int argc, const char* const* argv, sqlite3_vtab** table, char** error)
         NOEXCEPT {
 #ifdef NDEBUG
           try {
@@ -95,7 +95,7 @@ struct module_impl : public sqlite3_module
             for (int i = 1; i < argc; i++) {
               args.emplace_back(argv[i]);
             }
-            auto self = static_cast<module_impl*>(module);
+            auto self = static_cast<component_impl*>(component);
             auto impl = self->impl->create(name, std::move(args));
             if (!impl) {
               return SQLITE_NOMEM;
@@ -432,12 +432,12 @@ struct module_impl : public sqlite3_module
   }
 
 private:
-  std::unique_ptr<sql::module> impl;
+  std::unique_ptr<sql::component> impl;
 };
 
-void module_destructor(void* module)
+void component_destructor(void* component)
 {
-  delete static_cast<module_impl*>(module);
+  delete static_cast<component_impl*>(component);
 }
 
 }  // namespace
@@ -526,15 +526,15 @@ void database::version(sql::version version)
   operator()("PRAGMA user_version = " + oss.str());
 }
 
-void database::create(const std::string& name, std::unique_ptr<sql::module> module)
+void database::create(const std::string& name, std::unique_ptr<sql::component> component)
 {
-  if (!module) {
+  if (!component) {
     return;
   }
-  auto ptr = std::make_unique<module_impl>(std::move(module));
-  if (sqlite3_create_module_v2(impl_->handle.get(), name.data(), ptr.get(), ptr.get(), module_destructor) != SQLITE_OK)
+  auto ptr = std::make_unique<component_impl>(std::move(component));
+  if (sqlite3_create_module_v2(impl_->handle.get(), name.data(), ptr.get(), ptr.get(), component_destructor) != SQLITE_OK)
   {
-    throw exception("failed to create module: " + name);
+    throw exception("failed to create component: " + name);
   }
   ptr.release();
 }
